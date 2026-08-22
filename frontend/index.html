@@ -1,1 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHECKPOINT — QR Code Safety Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">QR</div>
+      <div>
+        <div class="brand-name">CHECKPOINT</div>
+        <div class="brand-sub">QR Threat Screening</div>
+      </div>
+    </div>
+    <div class="topbar-right">SECURITY DOMAIN <span class="dot">·</span> SPECTRA-2026<br>PROBLEM 02</div>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow"><span class="blink"></span> LIVE — RUNS ENTIRELY IN YOUR BROWSER</div>
+    <h1>Every code gets <span>inspected</span><br>before it gets trusted.</h1>
+    <p class="lede">Upload or scan a QR code. Checkpoint decodes it, runs three independent inspection lanes on the destination, and stamps a verdict — before you ever visit the link.</p>
+  </div>
+
+  <div class="console">
+    <div class="console-frame">
+      <div class="console-head">
+        <span>INSPECTION CONSOLE</span>
+        <span id="consoleStatus" class="status-live">● AWAITING SUBMISSION</span>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.01" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <div class="dropzone-title">Present a QR code for inspection</div>
+        <div class="dropzone-sub">Drop an image, upload a screenshot, or scan live with your camera. Nothing is uploaded to a server we run — decoding happens on your device.</div>
+        <div class="dz-actions">
+          <button class="btn btn-primary" id="uploadBtn">Upload image</button>
+          <button class="btn" id="cameraBtn">Use camera</button>
+          <input type="file" id="fileInput" accept="image/*">
+        </div>
+      </div>
+
+      <div class="scan-stage" id="scanStage">
+        <div class="scan-media-wrap xray" id="mediaWrap"></div>
+        <div class="scan-caption" id="scanCaption">SCANNING FOR CODE<span class="cursor">_</span></div>
+      </div>
+
+      <div class="decode-error" id="decodeError"></div>
+
+      <div class="payload-strip" id="payloadStrip">
+        <div class="lbl">Decoded payload</div>
+        <div class="val" id="payloadVal"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lanes-section" id="lanesSection">
+    <div class="section-label">Inspection lanes — run in sequence</div>
+
+    <div class="lane">
+      <div class="lane-num" id="lane1num">01</div>
+      <div>
+        <div class="lane-title">Structure &amp; Pattern Analysis</div>
+        <div class="lane-desc">Examines the URL itself — protocol, encoding tricks, shorteners, brand impersonation and look-alike domains. No network calls.</div>
+        <ul class="lane-findings" id="lane1findings"></ul>
+      </div>
+      <div class="lane-status pending" id="lane1status">PENDING</div>
+    </div>
+
+    <div class="lane">
+      <div class="lane-num" id="lane2num">02</div>
+      <div>
+        <div class="lane-title">DNS &amp; Hosting Check</div>
+        <div class="lane-desc">Resolves the destination host and looks up who's actually serving it — via Google DNS-over-HTTPS and a public IP registry.</div>
+        <ul class="lane-findings" id="lane2findings"></ul>
+      </div>
+      <div class="lane-status pending" id="lane2status">PENDING</div>
+    </div>
+
+    <div class="lane">
+      <div class="lane-num" id="lane3num">03</div>
+      <div>
+        <div class="lane-title">Threat Database Lookup</div>
+        <div class="lane-desc">Cross-references the URL against Google Safe Browsing's live malware &amp; phishing database.</div>
+        <ul class="lane-findings" id="lane3findings"></ul>
+      </div>
+      <div class="lane-status pending" id="lane3status">PENDING</div>
+    </div>
+  </div>
+
+  <div class="verdict-section" id="verdictSection">
+    <div class="section-label">Verdict</div>
+    <div class="verdict-wrap">
+      <div class="stamp-box"><div class="stamp" id="stamp">—</div></div>
+      <div class="ticket" id="ticket"></div>
+    </div>
+    <div class="rescan-row"><button class="btn" id="rescanBtn">↺ Inspect another code</button></div>
+  </div>
+
+  <div class="settings">
+    <details>
+      <summary>Optional: enable live threat-database lookups (Lane 03)</summary>
+      <div class="settings-body">
+        <input type="text" id="apiKeyInput" placeholder="Google Safe Browsing API key (kept in this browser tab only)">
+        <button class="btn" id="saveKeyBtn">Save key</button>
+      </div>
+      <div class="settings-note">Without a key, the verdict is based on Lanes 01–02 (structure + hosting) only, clearly labeled as heuristic. Get a free key from the <a href="https://developers.google.com/safe-browsing/v4/get-started" target="_blank" rel="noopener">Safe Browsing API console</a>. The key is stored only in this tab's memory — never sent anywhere except Google's API.</div>
+    </details>
+  </div>
+
+  <footer>
+    Checkpoint never opens the destination for you automatically — the "safe preview" is metadata only (domain, resolved host, favicon), because rendering an untrusted page defeats the point of screening it first. All three lanes run from your browser directly to Google DNS, ipwho.is, and Google Safe Browsing — no third-party server sits in between. Built for SPECTRA-2026, Security domain, Problem Statement 02.
+  </footer>
+
+<script src="script.js"></script>
+</body>
+</html>
